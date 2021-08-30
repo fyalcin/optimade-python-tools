@@ -1,41 +1,62 @@
 # Setting up an OPTIMADE API
 
 These notes describe how to set up and customize an OPTIMADE API based on the reference server in this package for some existing crystal structure data.
-To follow this guide, you will need to have a working development installation, as described in the [installation instructions](../INSTALL.md#full-development-installation).
 
+To follow this guide, you will need to have a working development installation, as described in the [installation instructions](../INSTALL.md#full-development-installation).
 Complete examples of APIs that use this package are described in the [Use Cases](./use_cases.md) section.
 
 ## Setting up the database
 
-The `optimade` reference server requires a data source (instances of [`EntryCollection`][optimade.server.entry_collections.entry_collections.EntryCollection] subclasses) per OPTIMADE entry type (`structures`, `references`, `links`), though these can be configured to use any database, or even a static file, under the hood.
-
+The `optimade` reference server requires a data source per OPTIMADE entry type (`structures`, `references`, `links`).
+In the simplest case, these can be configured as named MongoDB collections with a defined MongoDB URI and database name (see below), but they can also be set up as custom subclasses of [`EntryCollection`][optimade.server.entry_collections.entry_collections.EntryCollection] that could simply read from a static file.
 In the reference server, these data sources, or collections, are created in the submodule for the corresponding routers/endpoints.
-To use MongoDB-based collections for each entry type, simply specify the appropriate options in your [configuration](../configuration.md), namely `"database_backend": "mongodb"`, `"mongo_uri": "mongodb://localhost:27017"`, `"mongo_database": "optimade"` and the collection names for each entry type (`"structures_collection": "structures"` etc.).
 
-These notes will now assume that you have a MongoDB instance running and you have created a database that matches your `"mongo_database"` config option.
+Here, we shall use the built-in MongoDB collections for each entry type, by simply specifying the appropriate options in the [configuration](../configuration.md), namely [`"database_backend": "mongodb"`][optimade.server.config.ServerConfig.database_backend], [`"mongo_uri": "mongodb://localhost:27017"`][optimade.server.config.ServerConfig.mongo_uri], [`"mongo_database": "optimade"`][optimade.server.config.ServerConfig.mongo_database] and the collection names for each entry type ([`"structures_collection": "structures"`][optimade.server.config.ServerConfig.structures_collection] etc.).
+These notes will now assume that you have a MongoDB instance running and you have created a database that matches your [`"mongo_database"`][optimade.server.config.ServerConfig.mongo_database] config option.
 
-If you disable inserting test data (with the `"insert_test_data": false` configuration option), you can test your API/database connection by running the web server with `uvicorn optimade.main:app` and visiting the (hopefully empty) structures endpoint at `localhost:5000/v1/structures` (or your chosen host).
+If you disable inserting test data (with the [`"insert_test_data": false`][optimade.server.config.ServerConfig.insert_test_data] configuration option), you can test your API/database connection by running the web server with `uvicorn optimade.main:app` and visiting the (hopefully empty) structures endpoint at `localhost:5000/v1/structures` (or your chosen base URL).
+
+!!! note
+    As of version v0.16, the other supported database backend is Elasticsearch.
+    If you are interested in using another backend, or would like it to be supported in the `optimade` package, please raise an issue on [GitHub](https://github.com/Materials-Consortia/optimade-python-tools/issues/new) and visit the notes on implementing new [filter transformers](./filtering.md#developing-new-filter-transformers).
 
 ## Mapping non-OPTIMADE data
 
-Two options:
-- Run your data through a Mapper first, then create a new database
-- Define aliases for custom fields and potentially map filters by field
+There are two ways to work with data that does not exactly match the OPTIMADE specification, both of which require configuring a subclass of [`BaseResourceMapper`][optimade.server.mappers.entries.BaseResourceMapper] that converts your stored data format into an OPTIMADE-compliant entry.
+The two options are:
 
-### Creating a secondary database
+- Use the mapper to dynamically convert the data stored in the database, and the filters on that data, to an OPTIMADE format when responding to API requests.
+- Apply the mapper to your entries before ingestion and use it to create a secondary database that stores the converted entries (e.g., normalized data), or equivalently, adding all the required OPTIMADE fields inside the existing entries (e.g., denormalized data)
 
-### Aliases and transforming filters
+The main consideration when choosing these options is not necessarily how closely your data matches the OPTIMADE format, but instead how readily the OPTIMADE filtering of that document can be mapped into the corresponding database query.
+This could require writing or extending the [`BaseFilterTransformer`][optimade.filtertransformers.base_transformer.BaseTransformer] class, which takes an OPTIMADE filter string and converts it into a backend-specific query.
 
-## Serving non-OPTIMADE fields
+For example, if your database stores chemical formulae with extraneous "1"'s, e.g., SiO<sub>2</sub> is represented as `"Si1O2"`, then the incoming OPTIMADE filter (which asserts that elements must be alphabetical, and "1"'s must be omitted) for `chemical_formula_reduced="O2Si"` will also need to be transformed so that the corresponding database query matches the stored string, which in this case can be done easily.
+Instead, if you are storing chemical formulae as an unreduced count per simulation cell, e.g., `"Si4O8"`, then it is impossible to remap the filter `chemical_formula_reduced="O2Si"` such that it matches all structures with the correct formula unit (e.g., `"SiO2"`, `"Si2O4"`, ...).
+This would then instead require option 2 above, namely either the addition of auxiliary fields that store the correct (or mappable) OPTIMADE format in the database, or the creation of a secondary database that returns the pre-converted structures.
 
-Again, two options:
-- List provider fields in config, which will get your provider prefix appended to them
-- Extend e.g. `StructureResourceAttributes` model and manually prefix it. Allows you to add custom info
+In the simplest case, the mapper classes can be used to define aliases between fields in the database and the OPTIMADE field name; these can be configured via the [`aliases`][optimade.server.config.ServerConfig.aliases] option as a dictionary mapping stored in a dictionary under the appropriate endpoint name, e.g. `"aliases": {"structures": {"chemical_formula_reduced": "my_chem_form"}}`, or defined as part of a custom mapper class.
 
-### Config-only
+In either option, you should now be able to insert your data into the corresponding MongoDB (or otherwise) collection.
 
-### Extending the OPTIMADE models
+## Serving custom fields/properties
+
+According to the OPTIMADE specification, any field not standardized in the specification must be prefixed with an appropriate "provider prefix" (e.g., "`_aflow`" for [AFLOW](https://aflow.org) and "`_cod`" for [COD](https://crystallography.net)).
+This prefix is intended to be unique across all [OPTIMADE providers](https://github.com/Materials-Consortia/providers) to enable filters to work across different implementations.
+The prefix can be set in the [configuration](../configuration.md) as part of the [`provider`][optimade.server.config.ServerConfig.provider] option.
+
+Once the prefix has been set, custom fields can be listed by endpoint in the [`provider_fields`][optimade.server.config.ServerConfig.provider_fields] configuration option.
+Filters that use the prefixed form of these fields will then be passed through to the underlying database without the prefix, and then the prefix will be reinstated in the response.
+
+It is recommended that you provide a description, type and unit for each custom field that can be returned at the corresponding `/info/<entry_type>` endpoint.
+To do this, the underlying `EntryResourceAttributes` model will need to be sub-classed, the pydantic fields added to that class, and the server adjusted to make use of those models in responses.
+The reference server is currently not flexible enough to use custom response classes, so instead the code will need to be forked and modified for your implementation.
 
 ## Validating your implementation
 
+With the database collections, mappers, aliases and provider configured, you can try running the web server (with e.g., `uvicorn optimade.main:app`, if you are using the same app file) and validating it as an OPTIMADE API, following the [validation guide](./validation.md).
+
 ## Registering as a provider
+
+If you host your API at a persistent URL, you should consider registering as an OPTIMADE provider, which will add you to the federated list used by users and clients to discover data.
+Instructions for how to do this can be found at in the [Materials-Consortia/providers](https://github.com/Materials-Consortia/providers) repository.
