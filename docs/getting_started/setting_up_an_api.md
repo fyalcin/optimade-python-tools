@@ -48,9 +48,22 @@ The prefix can be set in the [configuration](../configuration.md) as part of the
 Once the prefix has been set, custom fields can be listed by endpoint in the [`provider_fields`][optimade.server.config.ServerConfig.provider_fields] configuration option.
 Filters that use the prefixed form of these fields will then be passed through to the underlying database without the prefix, and then the prefix will be reinstated in the response.
 
+!!! warning
+    This config-only approach does not provide any way of **describing** the underlying field (via `description`), its type, or any potential physical units, and the field will not be added to the corresponding entry info endpoint (e.g., `/info/structures`).
+    For this, you will need to follow the more complicated method below, under [More advanced usage](#more_advanced_usage).
+
+### More advanced usage
+
 It is recommended that you provide a description, type and unit for each custom field that can be returned at the corresponding `/info/<entry_type>` endpoint.
 To do this, the underlying `EntryResourceAttributes` model will need to be sub-classed, the pydantic fields added to that class, and the server adjusted to make use of those models in responses.
-The reference server is currently not flexible enough to use custom response classes, so instead the code will need to be forked and modified for your implementation.
+In this case, it may be easier to write a custom endpoint for your entry type, that copies the existing reference endpoint.
+
+Your custom model will need to be registered in three places:
+1. The data collection.
+1. The resource mapper class used by the collection.
+1. The [`ENTRY_INFO_SCHEMAS`][optimade.server.routers.info.ENTRY_INFO_SCHEMAS] dictionary.
+
+Currently, the reference server is not flexible enough to use custom response classes via configuration only (there is an open issue tracking this [#929](https://github.com/Materials-Consortia/optimade-python-tools/issues/929), so instead the code will need to be forked and modified for your implementation.
 
 ## Validating your implementation
 
