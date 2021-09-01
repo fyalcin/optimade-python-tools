@@ -63,6 +63,11 @@ Your custom model will need to be registered in three places:
 1. The resource mapper class used by the collection.
 1. The [`ENTRY_INFO_SCHEMAS`][optimade.server.routers.info.ENTRY_INFO_SCHEMAS] dictionary.
 
+Finally, the model must be instructed to use the prefixed (aliased) fields when generating its schemas.
+This is most simply done via pydantic's `alias_generator` functionality.
+
+Putting all of this together, the following code snippet provides a minimal working example for a structures endpoint that serves an additional field.
+
 Currently, the reference server is not flexible enough to use custom response classes via configuration only (there is an open issue tracking this [#929](https://github.com/Materials-Consortia/optimade-python-tools/issues/929), so instead the code will need to be forked and modified for your implementation.
 
 ## Validating your implementation
