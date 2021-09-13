@@ -11,7 +11,7 @@ tags:
   - materials discovery
   - databases
 authors:
-  - name: Matthew L. Evans^[co-first author]
+  - name: Matthew L. Evans^[joss@ml-evs.science]
     orcid:  0000-0002-1182-9098
     affiliation: "1, 2"
   - name: Casper W. Andersen^[co-first author]
