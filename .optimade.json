@@ -1,0 +1,46 @@
+{
+    "log_dir": "./logs/optimade",
+    "database_backend": "mongodb",
+    "insert_test_data": true,
+    "mongo_database": "optimade",
+    "mongo_uri": "mongodb+srv://tfroot:letsseeifthispasswordissecureenough@triboflow.pzgj2.mongodb.net/optimade?retryWrites=true&w=majority",
+    "links_collection": "links",
+    "references_collection": "references",
+    "structures_collection": "structures",
+    "debug": false,
+    "default_db": "test_server",
+    "implementation": {
+        "name": "Example implementation",
+        "source_url": "https://github.com/Materials-Consortia/optimade-python-tools",
+        "issue_tracker": "https://github.com/Materials-Consortia/optimade-python-tools/issues",
+        "maintainer": {"email": "dev@optimade.org"}
+    },
+    "provider": {
+        "name": "Test Provider",
+        "description": "Provider used for examples, not to be assigned to a real database",
+        "prefix": "test",
+        "homepage": "https://example.com"
+    },
+    "provider_fields": {
+        "structures": [
+            "bulk_modulus",
+            "equilibrium_volume",
+	    "encut_info",
+	    "structure_equiVol"
+        ]
+    },
+    "aliases": {
+        "structures": {
+            "id": "task_id",
+            "immutable_id": "_id",
+            "chemical_formula_descriptive": "pretty_formula",
+            "chemical_formula_reduced": "pretty_formula",
+            "chemical_formula_anonymous": "formula_anonymous"
+        }
+    },
+    "length_aliases": {
+        "structures": {
+            "chemsys": "nelements"
+        }
+    }
+}
