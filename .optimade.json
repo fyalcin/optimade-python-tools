@@ -1,7 +1,7 @@
 {
     "log_dir": "./logs/optimade",
     "database_backend": "mongodb",
-    "insert_test_data": true,
+    "insert_test_data": false,
     "mongo_database": "optimade",
     "mongo_uri": "mongodb+srv://tfroot:letsseeifthispasswordissecureenough@triboflow.pzgj2.mongodb.net/optimade?retryWrites=true&w=majority",
     "links_collection": "links",
