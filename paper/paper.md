@@ -105,6 +105,9 @@ NOMAD uses a released version of `optimade-python-tools` and all necessary custo
 - Materials Cloud [@MaterialsCloud] uses `optimade-python-tools` as a library to provide an OPTIMADE API entry to archived computational materials studies, created with the AiiDA [@AiiDA] Python framework and published through their archive.
 In this case, each individual study and archive entry has its own database and separate API entry.
 The Python classes within the `optimade` package have been extended to make use of AiiDA and its underlying [PostgreSQL](https://postgresql.org) storage engine.
+- The `optimade.adapters` module from the `optimade-python-tools` library is used in a graphical web client for OPTIMADE API implementations hosted on Materials Cloud [@MaterialsCloudClient].
+It allows users to search through OPTIMADE API implementations using widgets as well as typing in a filter string raw.
+The found structures can be inspected graphically and either converted and downloaded in formats provided by conversion functions in the `optimade.adapters` module or used in another Materials Cloud web tool, where the structure is automatically downloaded, converted, and transferred in the backgorund, partly using the `optimade.adapters` module.
 
 # Acknowledgements
 
