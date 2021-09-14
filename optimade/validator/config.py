@@ -84,7 +84,11 @@ _INCLUSIVE_OPERATORS = {
         "<=",
         ">=",
     ),
-    DataType.FLOAT: (),
+    DataType.FLOAT: (
+        "=",
+        "<=",
+        ">=",
+        ),
     DataType.LIST: ("HAS", "HAS ALL", "HAS ANY"),
 }
 
