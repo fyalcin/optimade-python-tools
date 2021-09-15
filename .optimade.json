@@ -24,6 +24,9 @@
     "provider_fields": {
         "structures": [
             "bulk_modulus",
+	    "encut_info",
+	    "equilibrium_volume",
+	    "structure_equiVol",
         ]
     },
     "aliases": {
